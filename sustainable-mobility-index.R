@@ -30,7 +30,8 @@ lt_synthetic <- read.xlsx("lithuania_mobility_synthetic_60_classed_v2_for_softwa
 # - Use of Space
 lt_synthetic_long <- lt_synthetic %>% 
   pivot_longer(cols = -c(county, municipality, class), names_to = "variable", values_to = "value") %>% 
-  mutate(value = as.numeric(value)) %>% 
+  mutate(value = as.numeric(value), 
+  variable = tolower(variable)) %>% 
   mutate(sustainable_mobility_category = case_when(
     str_detect(variable, "co2") ~ "Environmental Impact", 
     str_detect(variable, "noise") ~ "Environmental Impact", 
@@ -68,8 +69,9 @@ lt_synthetic_long <- lt_synthetic %>%
     str_detect(variable, "sustainable_mobility_plan") ~ "Incentives and Policies", 
     str_detect(variable, "to_fine") ~ "Incentives and Policies", 
     str_detect(variable, "walk_more") ~ "Walking", 
-    str_detect(variable, "pedestrian") ~ "Walking"
-  )) %>% # now let's clean the variable names, 
+    str_detect(variable, "pedestrian") ~ "Walking", 
+    str_detect(variable, "hybrid") ~ "Cars: Electric and Alternative Fuels", 
+    str_detect(variable, "distribution") ~ "Use of Space")) %>% # now let's clean the variable names, 
   #making them into snake_case, which will require identifying the parts of the variable name that 
   #have multiple spaces between words and replacing them with a single underscore, then replacing any single spaces 
   # or periods with a single underscore, than stripping any other special characters, making them lowercase, and 
@@ -251,11 +253,13 @@ class_lt_synthetic_index %>%
 # The bars are outlined in grey and the fill of the bars is a uniform light blue.
 # The legend and bars are ordered by class in this order: Metropolitan, Suburban/Mid-sized, Rural, Resort Town.
 # There is twice the amount of white space between each set of grouped bars
+# Reorder the sustainable mobility categories with "OVERALL SUSTAINABLE MOBILITY INDEX SCORE" first, then the rest of the categories, keeping mind I will use coord_flip at the end.    
 
 class_lt_synthetic_index %>%
     pivot_longer(cols = -class, names_to = "sustainable_mobility_category", values_to = "average") %>%
     mutate(sustainable_mobility_category = if_else(sustainable_mobility_category == "sustainable_mobility_index", 
     "OVERALL SUSTAINABLE MOBILITY INDEX SCORE", sustainable_mobility_category)) %>%
+    mutate(sustainable_mobility_category = factor(sustainable_mobility_category, levels = c("OVERALL SUSTAINABLE MOBILITY INDEX SCORE", "Environmental Impact", "Incentives and Policies", "Cycling", "Public Transport", "Walking", "Cars: Fossil Fuels", "Cars: Electric and Alternative Fuels", "Use of Space"))) %>%
     ggplot(aes(x = sustainable_mobility_category, y = average, fill = class)) +
     geom_bar(stat = "identity", position = "dodge", width = 0.5, color = "darkgrey") +
     theme_minimal() +
