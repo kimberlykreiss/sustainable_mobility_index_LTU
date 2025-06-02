@@ -200,7 +200,7 @@ class_lt_synthetic_long_minmax <- lt_synthetic_long_final %>%
 # We will now calculate the average of the min-max normalized values for each category for each class. 
 # We will use the mean function to calculate the average. 
 class_lt_synthetic_long_mean <- class_lt_synthetic_long_minmax %>% 
-    group_by(class, sustainable_mobility_category) %>%
+    group_by(class, sustainable_mobility_category, municipality) %>%
     summarise(average = mean(min_max_norm)) %>%
     ungroup() 
 
@@ -234,9 +234,9 @@ class_lt_synthetic_index <- class_lt_synthetic_long_mean %>%
 # The bars are outlined in grey and the fill of the bars is a uniform light blue.
 
 class_lt_synthetic_index %>%
-    arrange(desc(sustainable_mobility_index)) %>%
-    head(5) %>%
-    ggplot(aes(x = reorder(class, sustainable_mobility_index), y = sustainable_mobility_index)) +
+    group_by(class) %>%
+    summarise(average = mean(sustainable_mobility_index)) %>%
+    ggplot(aes(x = reorder(class, average), y = average)) +
     geom_bar(stat = "identity", fill = "lightblue", color = "grey") +
     #geom_hline(yintercept = mean(class_lt_synthetic_index$sustainable_mobility_index), color = "red") +
    # geom_text(aes(x = 0, y = mean(class_lt_synthetic_index$sustainable_mobility_index), label = "Average Index Score"), color = "red", hjust = -.1, vjust = 1.5) +
@@ -247,6 +247,29 @@ class_lt_synthetic_index %>%
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
     ylim(0, 1)
 
+# Now let's look at just the Metropolitan class. 
+class_lt_synthetic_index %>%
+    filter(class == "Metropolitan") %>% 
+    ggplot(aes(x = municipality, y = sustainable_mobility_index)) +
+    geom_bar(stat = "identity", fill = "lightblue", color = "grey") +
+    labs(title = "Metropolitan Class Sustainable Mobility Index",
+         x = "Municipality",
+         y = "Sustainable Mobility Index") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+    ylim(0, 1)
+
+# Now let's look at just the Metropolitan class but grouping by subindex. 
+class_lt_synthetic_index %>% 
+    filter(class == "Metropolitan") %>% 
+    pivot_longer(cols = -c(municipality, class), names_to = "sustainable_mobility_category", values_to = "average") %>%
+    filter(sustainable_mobility_category != "sustainable_mobility_index") %>%
+    mutate(sustainable_mobility_category = factor(sustainable_mobility_category, levels = c("Environmental Impact", "Incentives and Policies", "Cycling", "Public Transport", "Walking", "Cars: Fossil Fuels", "Cars: Electric and Alternative Fuels", "Use of Space"))) %>%
+    ggplot(aes(x = municipality, y = average, fill = sustainable_mobility_category)) +
+    geom_bar(stat = "identity", position = "dodge", width = 0.5, color = "darkgrey") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+    ylim(0, 1) + coord_flip() + theme(legend.position = "bottom")
 # Now we will create a graph showing the the subindexes by class. 
 # The graph is a grouped bar chart with the subindex value on the y-axis and the subindex category on the x-axis. 
 # The grouped bars are grouped by class. # The grouping of the bars is ordered by class in this order: Metropolitan, Suburban/Mid-sized, Rural, Resort Town.   
@@ -256,18 +279,4 @@ class_lt_synthetic_index %>%
 # Reorder the sustainable mobility categories with "OVERALL SUSTAINABLE MOBILITY INDEX SCORE" first, then the rest of the categories, keeping mind I will use coord_flip at the end.    
 
 class_lt_synthetic_index %>%
-    pivot_longer(cols = -class, names_to = "sustainable_mobility_category", values_to = "average") %>%
-    mutate(sustainable_mobility_category = if_else(sustainable_mobility_category == "sustainable_mobility_index", 
-    "OVERALL SUSTAINABLE MOBILITY INDEX SCORE", sustainable_mobility_category)) %>%
-    mutate(sustainable_mobility_category = factor(sustainable_mobility_category, levels = c("OVERALL SUSTAINABLE MOBILITY INDEX SCORE", "Environmental Impact", "Incentives and Policies", "Cycling", "Public Transport", "Walking", "Cars: Fossil Fuels", "Cars: Electric and Alternative Fuels", "Use of Space"))) %>%
-    ggplot(aes(x = sustainable_mobility_category, y = average, fill = class)) +
-    geom_bar(stat = "identity", position = "dodge", width = 0.5, color = "darkgrey") +
-    theme_minimal() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
-    ylim(0, .75) +
-    scale_fill_manual(values = c("Metropolitan" = "orange", "Suburban/Mid-sized" = "lightblue", "Rural" = "darkred", "Resort Town" = "#bfe4bf")) + 
-    coord_flip() + 
-    theme(legend.position = "bottom",
-          legend.title = element_blank()) + 
-    labs(title = "Sustainable Mobility Sub-Index by Class",
-        x ="", y="")
+    filter(class == "Metropolitan") %>%
